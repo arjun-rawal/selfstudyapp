@@ -30,7 +30,7 @@ const Transparency = () => {
         <h3 style={{ color: "#34495e" }}>Third-Party Services</h3>
         <p>
           We use YouTube API Services as part of our platform. By using our application, you
-          agree to YouTube's Terms of Service: <a href="https://www.youtube.com/t/terms" style={{ color: "#3498db" }}>YouTube Terms of Service</a>.
+          agree to YouTube&apos;s Terms of Service: <a href="https://www.youtube.com/t/terms" style={{ color: "#3498db" }}>YouTube Terms of Service</a>.
           We also use third-party content services, including advertisements.
         </p>
 
@@ -54,7 +54,7 @@ const Transparency = () => {
 
         <h3 style={{ color: "#34495e" }}>Acceptance of Terms</h3>
         <p>
-          By using our platform, you agree to abide by these terms and YouTube's Terms of
+          By using our platform, you agree to abide by these terms and YouTube&apos;s Terms of
           Service, available here: <a href="https://www.youtube.com/t/terms" style={{ color: "#3498db" }}>YouTube Terms of Service</a>.
         </p>
 

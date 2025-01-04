@@ -1,4 +1,5 @@
 import { Html, Head, Main, NextScript } from "next/document";
+import Link from "next/link";
 
 export default function Document() {
   return (
@@ -13,7 +14,7 @@ export default function Document() {
       <body>
         <Main />
         <NextScript />
-        <a
+        <Link
           href="/transparency"
           style={{
             position: "absolute",
@@ -24,7 +25,7 @@ export default function Document() {
           }}
         >
           Privacy Policy | Terms of Service
-        </a>
+        </Link>
       </body>
     </Html>
   );
