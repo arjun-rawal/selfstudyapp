@@ -9,7 +9,7 @@ import React from "react";
 const YouTubeEmbed = ({ url }) => {
 
   /* 
-  * Extract the video ID from the YouTube URL
+  * Extract  the video ID from the YouTube URL
   */
   const formatEmbedUrl = (url) => {
     if (url.includes("youtube.com/watch?v=")) {
