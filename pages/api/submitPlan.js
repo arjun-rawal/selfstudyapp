@@ -1,26 +1,20 @@
 import clientPromise from "../../lib/mongodb";
 import OpenAI from "openai";
 import { useState, useEffect } from "react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_KEY,
   dangerouslyAllowBrowser: true,
 });
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-
-
 /**
- * Sends the plan prompt to openai to retrieve the day by day subtopics and websites
+ * Sends the plan prompt to OpenAI to retrieve the day-by-day subtopics and websites
  * @param {req.body.username} username of the user plan
  * @param {req.body.password} schedule to be put in user's plan
  * @param {req.body.topic} topic of the user's plan
  * @param {req.body.number} number attribute for the user's plan
  * @param {req.body.time} time attribute for the user's plan
- * writes to the database with collection plans with a plan object: username, topic, numDays, outputText(openAI's response), totalCost(of the API call)
+ * writes to the database with collection plans with a plan object: username, topic, numDays, outputText(OpenAI's response), totalCost(of the API call)
  */
 export default async function handler(req, res) {
   if (req.method === "POST") {
@@ -57,15 +51,15 @@ export default async function handler(req, res) {
         return;
       }
 
-      const planExists = await plansCollection.findOne({username:username});
-      if (planExists){
+      const planExists = await plansCollection.findOne({ username: username });
+      if (planExists) {
         res.status(400).json({
           success: false,
-          message: "Limit to 1 plan/user"
-        })
+          message: "Limit to 1 plan/user",
+        });
       }
 
-      //converting the string prompt ex("5 days", "3 weeks") to numDays
+      // Converting the string prompt ex("5 days", "3 weeks") to numDays
       let numDays = 0;
       if (time === "Days") {
         numDays = number;
@@ -75,65 +69,81 @@ export default async function handler(req, res) {
         numDays = number * 30;
       }
 
-      console.log("SENDING")
-      const prompt= `
-                          You are tasked with creating a detailed, day-by-day study schedule based on two inputs:
-                            1. Topic: A subject such as 'AP Calculus.'
-                            2. Number of Days: The number of days to create the schedule for.
+      console.log("SENDING");
+      const prompt = `
+        You are tasked with creating a detailed, day-by-day study schedule based on two inputs:
+        1. Topic: A subject such as 'AP Calculus.'
+        2. Number of Days: The number of days to create the schedule for.
 
-                            Your response must be in JSON format for easy parsing. Use the following structure:
-                            
-                            [
-                                {
-                                    "day": 1,
-                                    "videoTopic": " video topic for Day 1",
-                                    "assignmentLink": "link to an assignment for Day 1"
-                                },
-                                {
-                                    "day": 2,
-                                    "videoTopic": "video topic  for Day 2",
-                                    "assignmentLink": "Link to an assignment for Day 2"
-                                },
-                            ]
+        Your response must be in JSON format for easy parsing. Use the following structure:
 
-                            Ensure each day's video topic and assignment are specific to the subject, avoiding vague topics like "summary of topics." Ensure that all data fits the JSON structure exactly. Do not include any text outside the JSON object.
+        [
+            {
+                "day": 1,
+                "videoTopic": " video topic for Day 1",
+                "assignmentLink": "link to an assignment for Day 1"
+            },
+            {
+                "day": 2,
+                "videoTopic": "video topic  for Day 2",
+                "assignmentLink": "Link to an assignment for Day 2"
+            },
+        ]
 
-                            Now, create a day-by-day study schedule for the following:
-                            Topic: ${topic}
-                            Number of days: ${numDays}
+        Ensure each day's video topic and assignment are specific to the subject, avoiding vague topics like "summary of topics." Ensure that all data fits the JSON structure exactly. Do not include any text outside the JSON object.
 
-                            DO NOT START YOUR OUTPUT WITH A HEADER I.E.('''json) ONLY RETURN EXACT JSON FORMAT
-                            DO NOT PROVIDE EXAMPLE LINKS FOR ASSIGNMENTS, FIND REAL ONES ONLINE
+        Now, create a day-by-day study schedule for the following:
+        Topic: ${topic}
+        Number of days: ${numDays}
 
-            `;
-        const aiResult = await model.generateContent(prompt);
-      //store the cost in database for developer reference
-      // const promptTokens = completion.usage.prompt_tokens;
-      // const completionTokens = completion.usage.completion_tokens;
+        DO NOT START YOUR OUTPUT WITH A HEADER I.E.('''json) ONLY RETURN EXACT JSON FORMAT
+        DO NOT PROVIDE EXAMPLE LINKS FOR ASSIGNMENTS, FIND REAL ONES ONLINE
+      `;
 
-      // const costInput = (promptTokens / 1000000) * 2.5;
-      // const costOutput = (completionTokens / 1000000) * 10;
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4", // or "gpt-3.5-turbo" depending on your preference
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that creates study schedules.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        response_format: { type: "json_object" }, // Ensure the response is in JSON format
+      });
 
-      // const totalCost = costInput + costOutput;
-      // let outputText = completion.choices[0].message.content;
-      let outputText = aiResult.response.text();
-      console.log("HERETEXT")
-      console.log(outputText)
-      console.log(aiResult)
+      // Store the cost in the database for developer reference
+      const promptTokens = completion.usage.prompt_tokens;
+      const completionTokens = completion.usage.completion_tokens;
 
-      //sometimes openai will start the response with '''json and end it with ''' which makes it unparsable so we clean it here
+      const costInput = (promptTokens / 1000) * 0.03; // Assuming $0.03 per 1K tokens for input
+      const costOutput = (completionTokens / 1000) * 0.06; // Assuming $0.06 per 1K tokens for output
+
+      const totalCost = costInput + costOutput;
+      let outputText = completion.choices[0].message.content;
+
+      console.log("HERETEXT");
+      console.log(outputText);
+      console.log(completion);
+
+      // Sometimes OpenAI will start the response with '''json and end it with ''' which makes it unparsable so we clean it here
       outputText = outputText.trim(); // Removes whitespace
-      if (outputText.startsWith("```json") && outputText.endsWith("```")) { // Matches correct delimiters
+      if (outputText.startsWith("```json") && outputText.endsWith("```")) {
+        // Matches correct delimiters
         outputText = outputText
-          .replace(/^```json\s*/, '') // Removes ```json at the start
-          .replace(/```$/, '');       // Removes ``` at the end
+          .replace(/^```json\s*/, "") // Removes ```json at the start
+          .replace(/```$/, ""); // Removes ``` at the end
       }
-      
+
       const result = await plansCollection.insertOne({
         username,
         topic,
         numDays,
         outputText,
+        totalCost,
       });
 
       res.status(201).json({
