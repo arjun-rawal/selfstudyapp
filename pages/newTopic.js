@@ -1,7 +1,6 @@
 import {
   Box,
   Button,
-  Card,
   Center,
   Input,
   MenuContent,
@@ -10,6 +9,7 @@ import {
   MenuTrigger,
   Stack,
   Text,
+  Spinner,
 } from "@chakra-ui/react";
 import { StepperInput } from "@/components/ui/stepper-input";
 import { useState, useEffect } from "react";
@@ -18,9 +18,9 @@ import ReCAPTCHA from "react-google-recaptcha";
 import { useRouter } from "next/router";
 
 /**
- * New Topic form where the user can generate a studyplan for themself
+ * New Topic form where the user can generate a study plan for themselves
  * @param {props.username} username of the authenticated user
- * @param {props.password} password of the authenticated user, we need this because the newPLan api is protected
+ * @param {props.password} password of the authenticated user, we need this because the newPlan API is protected
  * @returns react component of the form
  */
 export default function NewTopic(props) {
@@ -28,16 +28,13 @@ export default function NewTopic(props) {
   const password = props.user?.password || "";
   const router = useRouter();
 
-
-  //Limiting the user to only one plan as of now, if a plan exists, it routes them to the studyPLan page
+  // Limiting the user to only one plan as of now, if a plan exists, it routes them to the studyPlan page
   useEffect(() => {
     async function fetchData() {
-
-        const result = await getPlan(username);
-        if (result.planExists) {
-          router.push("/studyPlan")
-        }
-      
+      const result = await getPlan(username);
+      if (result.planExists) {
+        router.push("/studyPlan");
+      }
     }
     fetchData();
   }, []);
@@ -47,7 +44,7 @@ export default function NewTopic(props) {
       console.error("No username provided");
       return null;
     }
-  
+
     const res = await fetch("/api/checkPlan", {
       method: "POST",
       headers: {
@@ -55,22 +52,17 @@ export default function NewTopic(props) {
       },
       body: JSON.stringify({ username }),
     });
-  
+
     if (!res.ok) {
       console.error("Failed to fetch plan:", await res.text());
       return null;
     }
-  
+
     const data = await res.json();
     return data;
   }
 
-
-
-
-
-
-  //I used usestates to handle the form values instead of a form component
+  // I used useState to handle the form values instead of a form component
   const [timeVal, setTimeVal] = useState("Months");
   const [numVal, setNumVal] = useState(3);
   const [topic, setTopic] = useState("");
@@ -81,12 +73,13 @@ export default function NewTopic(props) {
   const [showErrorMessage, setErrorMessage] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
 
-
   /**
-   * sends form values to submitPlan API
+   * Sends form values to submitPlan API
    */
   async function handleNew() {
-    console.log(username,password)
+    console.log(username, password);
+    setShowLoading(true); // Show loading indicator
+
     const res = await fetch("/api/submitPlan", {
       method: "POST",
       headers: {
@@ -103,13 +96,14 @@ export default function NewTopic(props) {
 
     const data = await res.json();
     console.log(data);
+
     if (res.ok) {
       setGptCall(true);
-    }
-    if (!res.ok) {
+    } else {
+      setShowLoading(false); // Hide loading indicator on error
       alert(data.message);
-      if (data.message === "Limit to 1 plan/user"){
-        router.push("/studyPlan")
+      if (data.message === "Limit to 1 plan/user") {
+        router.push("/studyPlan");
       }
     }
   }
@@ -135,7 +129,7 @@ export default function NewTopic(props) {
     setShowLoading(true);
   };
 
-  //if the ad is done(not showing), and openai has returned the call, navigate the user to /studyPLan
+  // If the ad is done (not showing), and OpenAI has returned the call, navigate the user to /studyPlan
   useEffect(() => {
     if (!showAd && gptCall) {
       router.push("/studyPlan");
@@ -163,11 +157,12 @@ export default function NewTopic(props) {
               transform="translate(-50%, -50%)"
               zIndex="1000"
             >
-              <>
+              <Stack align="center" spacing={4}>
+                <Spinner size="xl" color="blue.500" />
                 <Text fontSize="lg" fontWeight="bold">
-                  Loading...
+                  Generating your study plan...
                 </Text>
-              </>
+              </Stack>
             </Center>
           </>
         ) : (
@@ -187,7 +182,7 @@ export default function NewTopic(props) {
             />
             <Box zIndex={15}>
               <Text alignSelf={"center"}>Watch this ad to proceed:</Text>
-              {/*ad provider takes ~2 weeks to approve, so this is a random temporary ad. When they approve, all we have to do is change this url to their vast url*/}
+              {/* Ad provider takes ~2 weeks to approve, so this is a random temporary ad. When they approve, all we have to do is change this URL to their VAST URL */}
               <VideoAd
                 vastUrl={
                   "https://basil79.github.io/vast-sample-tags/pg/vast.xml"
@@ -260,7 +255,6 @@ export default function NewTopic(props) {
             />
             {showErrorMessage ? <Text> Captcha Required! </Text> : <></>}
             <Button onClick={handleGenerate}>Generate</Button>
-
           </>
         )}
       </Stack>
