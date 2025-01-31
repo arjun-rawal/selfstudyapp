@@ -6,38 +6,51 @@ import {
   HStack,
   Text,
   Button,
-  Checkbox,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
+  DialogBody,
+  DialogCloseTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+  DialogBackdrop,
   useBreakpointValue,
-  Link,
 } from "@chakra-ui/react";
+import { Checkbox } from "@/components/ui/checkbox";
 import YouTubeEmbed from "./YoutubeEmbed";
 import { useRouter } from "next/router";
 
 const Plan = ({ studyPlan, planID, refreshPlan }) => {
   const router = useRouter();
+
+  async function handleLogout() {
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        router.push("/");
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  }
+
   const { months } = studyPlan;
   const [selectedDay, setSelectedDay] = useState(null);
   const [assignmentCompleted, setAssignmentCompleted] = useState(false);
   const [videoCompleted, setVideoCompleted] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleDayClick = (day) => {
     setAssignmentCompleted(day.assignmentCompleted);
     setVideoCompleted(day.videoCompleted);
     setSelectedDay(day);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    handleExit();
   };
 
   const handleExit = async () => {
@@ -77,31 +90,14 @@ const Plan = ({ studyPlan, planID, refreshPlan }) => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const res = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (res.ok) {
-        router.push("/");
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
-
-  const dayCardWidth = useBreakpointValue({ base: "100%", md: "13.14vw" });
+  // Responsive width for day cards
+  const cardWidth = useBreakpointValue({ base: "100%", md: "13.14vw" });
 
   return (
-    <VStack spacing={6} align="stretch" w="100%" paddingLeft="1vw" paddingRight="1vw">
+    <VStack spacing={6} align="stretch" w="100vw" paddingLeft="1vw" paddingRight="1vw">
       <Button
         position={"absolute"}
-        left={{ base: "80vw", md: "90vw" }}
+        left={"90vw"}
         top={"2vh"}
         transform={"translate(0%,0%)"}
         onClick={handleLogout}
@@ -120,101 +116,135 @@ const Plan = ({ studyPlan, planID, refreshPlan }) => {
               </Heading>
               <HStack gap={"1vw"} wrap="wrap">
                 {week.days.map((day, dayIndex) => (
-                  <Box
-                    key={dayIndex}
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    p={4}
-                    shadow="md"
-                    w={dayCardWidth}
-                    minHeight="150px"
-                    cursor="pointer"
-                    bg={
-                      day.assignmentCompleted && day.videoCompleted
-                        ? "green.100"
-                        : " "
-                    }
-                    borderColor={
-                      day.assignmentCompleted && day.videoCompleted
-                        ? "green.500"
-                        : ""
-                    }
-                    onClick={() => handleDayClick(day)}
-                  >
-                    <Heading as="h4" size="sm">
-                      Day {day.dayNumber}
-                    </Heading>
-                    <Text mt={2} noOfLines={1}>
-                      {day.videoTopic}
-                    </Text>
-                  </Box>
+                  <DialogRoot key={dayIndex} onExitComplete={handleExit}>
+                    <DialogTrigger asChild>
+                      <Box
+                        borderWidth="1px"
+                        borderRadius="lg"
+                        p={4}
+                        shadow="md"
+                        w={cardWidth} // Responsive width
+                        minHeight="150px"
+                        cursor="pointer"
+                        bg={
+                          day.assignmentCompleted && day.videoCompleted
+                            ? "green.100"
+                            : " "
+                        }
+                        borderColor={
+                          day.assignmentCompleted && day.videoCompleted
+                            ? "green.500"
+                            : ""
+                        }
+                        onClick={() => handleDayClick(day)}
+                      >
+                        <Heading as="h4" size="sm">
+                          Day {day.dayNumber}
+                        </Heading>
+                        <Text mt={2} noOfLines={1}>
+                          {day.videoTopic}
+                        </Text>
+                      </Box>
+                    </DialogTrigger>
+                    <DialogBackdrop
+                      style={{
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        zIndex: 1000,
+                      }}
+                    />
+                    <DialogContent
+                      style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        zIndex: 1010,
+                        maxWidth: "500px",
+                        width: "90%",
+                        background: "white",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 10px rgba(0, 0, 0, 0.25)",
+                        textAlign: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <DialogHeader>
+                        <DialogTitle>Day {selectedDay?.dayNumber}</DialogTitle>
+                        <Text fontWeight={"bold"} mb={2}>
+                          {selectedDay?.videoTopic}
+                        </Text>
+                      </DialogHeader>
+                      <DialogBody>
+                        <Text fontWeight="bold">Assignment:</Text>
+                        <Text mb={4}>
+                          <a
+                            href={selectedDay?.assignmentLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: "blue",
+                              textDecoration: "underline",
+                            }}
+                          >
+                            {selectedDay?.assignmentLink}
+                          </a>
+                        </Text>
+                        <Text fontWeight="bold">Video:</Text>
+                        <YouTubeEmbed url={selectedDay?.videoLink} />
+                        <Text>
+                          {selectedDay?.videoLink !== "No video link available" ? (
+                            <a
+                              href={selectedDay?.videoLink}
+                              style={{
+                                color: "blue",
+                                textDecoration: "underline",
+                              }}
+                            >
+                              {selectedDay?.videoLink}
+                            </a>
+                          ) : (
+                            "No video link available"
+                          )}
+                        </Text>
+                      </DialogBody>
+                      <DialogFooter>
+                        <VStack>
+                          <Checkbox
+                            checked={assignmentCompleted}
+                            onCheckedChange={(e) => {
+                              setAssignmentCompleted(e.checked);
+                            }}
+                          >
+                            Assignment Completed
+                          </Checkbox>
+                          <Checkbox
+                            checked={videoCompleted}
+                            onCheckedChange={(e) => {
+                              setVideoCompleted(e.checked);
+                            }}
+                          >
+                            Video Completed
+                          </Checkbox>
+                          <DialogCloseTrigger asChild>
+                            <Button variant="solid" colorScheme="blue">
+                              Close
+                            </Button>
+                          </DialogCloseTrigger>
+                        </VStack>
+                      </DialogFooter>
+                    </DialogContent>
+                  </DialogRoot>
                 ))}
               </HStack>
             </Box>
           ))}
         </Box>
       ))}
-
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            <Heading size="md">Day {selectedDay?.dayNumber}</Heading>
-            <Text fontWeight={"bold"} mb={2}>
-              {selectedDay?.videoTopic}
-            </Text>
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Text fontWeight="bold">Assignment:</Text>
-            <Text mb={4}>
-              <Link
-                href={selectedDay?.assignmentLink}
-                isExternal
-                color="blue.500"
-                textDecoration="underline"
-              >
-                {selectedDay?.assignmentLink}
-              </Link>
-            </Text>
-            <Text fontWeight="bold">Video:</Text>
-            <YouTubeEmbed url={selectedDay?.videoLink} />
-            <Text>
-              {selectedDay?.videoLink !== "No video link available" ? (
-                <Link
-                  href={selectedDay?.videoLink}
-                  isExternal
-                  color="blue.500"
-                  textDecoration="underline"
-                >
-                  {selectedDay?.videoLink}
-                </Link>
-              ) : (
-                "No video link available"
-              )}
-            </Text>
-          </ModalBody>
-          <ModalFooter>
-            <VStack align="start" spacing={4}>
-              <Checkbox
-                isChecked={assignmentCompleted}
-                onChange={(e) => setAssignmentCompleted(e.target.checked)}
-              >
-                Assignment Completed
-              </Checkbox>
-              <Checkbox
-                isChecked={videoCompleted}
-                onChange={(e) => setVideoCompleted(e.target.checked)}
-              >
-                Video Completed
-              </Checkbox>
-              <Button colorScheme="blue" onClick={handleCloseModal}>
-                Close
-              </Button>
-            </VStack>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
     </VStack>
   );
 };
