@@ -112,7 +112,6 @@ export default async function handler(req, res) {
             content: prompt,
           },
         ],
-        response_format: { type: "json_object" }, // Ensure the response is in JSON format
       });
 
       // Store the cost in the database for developer reference
