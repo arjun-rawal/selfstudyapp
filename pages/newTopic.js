@@ -209,7 +209,7 @@ export default function NewTopic(props) {
               <StepperInput
                 value={numVal}
                 min={1}
-                max={5}
+                max={3}
                 onValueChange={handleNumChange}
               />
               <MenuRoot positioning={{ placement: "bottom-end" }}>
